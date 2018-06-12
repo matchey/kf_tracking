@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="increse" default="false" />
+	<arg name="static" default="false" />
+	<arg name="same" default="0.8" />
+	<arg name="erase" default="0.15" />
+	<arg name="sigma_p" default="100.0" />
+	<arg name="sigma_r" default="0.01" />
+	<arg name="frame" default="/velodyne" />
+	<node pkg="kf_tracking" type="test_kf_tracking" name="test_kf_tracking" output="screen">
+		<param name="flagIncrese" value="$(arg increse)" />
+		<param name="flagStatic" value="$(arg static)" />
+		<param name="thresholdSame" value="$(arg same)" />
+		<param name="thresholdErase" value="$(arg erase)" />
+		<param name="sigma_p" value="$(arg sigma_p)" />
+		<param name="sigma_r" value="$(arg sigma_r)" />
+		<param name="frameID" value="$(arg frame)" />
+	</node>
+</launch>
