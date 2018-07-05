@@ -20,18 +20,24 @@ class HumanTracker
 	Tracker tracker;
 
 	public:
-	HumanTracker()
+	HumanTracker(ros::NodeHandle priv_nh)
 		: pc(new pcl::PointCloud<pcl::PointXYZ>)
 	{
 		sub = n.subscribe<sensor_msgs::PointCloud2>("/human_recognition/positive_position", 1,
 				&HumanTracker::humanCallback, this);
 
-		// tracker.setStatic();
+		bool isStatic;
+		string frame_id;
+
+		priv_nh.param<bool>("flagStatic", isStatic, false);
+		priv_nh.param<string>("flamID", frame_id, "/velodyne");
+
+		tracker.setStatic(isStatic);
 		// tracker.setIncrease();
 		tracker.setThresholdSame(0.8);
 		tracker.setThresholdErase(0.15);
 		tracker.setSigma(100.0, 0.01); // P, R
-		tracker.setFrameID("/velodyne");
+		tracker.setFrameID(frame_id);
 	}
 
 	void humanCallback(const sensor_msgs::PointCloud2::ConstPtr& msg){
@@ -63,7 +69,9 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "test_tracking_kf");
 	cout << "kf tracking" << endl;
 
-	HumanTracker ht;
+	ros::NodeHandle priv_nh("~");
+
+	HumanTracker ht(priv_nh);
 
 	ros::spin();
 
