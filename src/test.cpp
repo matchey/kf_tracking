@@ -26,14 +26,16 @@ class HumanTracker
 		sub = n.subscribe<sensor_msgs::PointCloud2>("/human_recognition/positive_position", 1,
 				&HumanTracker::humanCallback, this);
 
+		bool isIncrese;
 		bool isStatic;
 		string frame_id;
 
+		priv_nh.param<bool>("flagIncrese", isIncrese, false);
 		priv_nh.param<bool>("flagStatic", isStatic, false);
 		priv_nh.param<string>("flamID", frame_id, "/velodyne");
 
 		tracker.setStatic(isStatic);
-		// tracker.setIncrease();
+		if(isIncrese) tracker.setIncrease();
 		tracker.setThresholdSame(0.8);
 		tracker.setThresholdErase(0.15);
 		tracker.setSigma(100.0, 0.01); // P, R
