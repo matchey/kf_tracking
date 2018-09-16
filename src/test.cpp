@@ -23,8 +23,12 @@ class HumanTracker
 	HumanTracker(ros::NodeHandle priv_nh)
 		: pc(new pcl::PointCloud<pcl::PointXYZ>)
 	{
-		sub = n.subscribe<sensor_msgs::PointCloud2>("/human_recognition/positive_position", 1,
-				&HumanTracker::humanCallback, this);
+		string topic_name;
+
+		priv_nh.param<string>("sub_topic_name", topic_name, "/human_recognition/positive_position");
+
+		sub = n.subscribe<sensor_msgs::PointCloud2>(topic_name, 1,
+													&HumanTracker::humanCallback, this);
 
 		bool isIncrese;
 		bool isStatic;
