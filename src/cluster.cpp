@@ -24,7 +24,7 @@ Cluster::Cluster()
 {
 	geometry_msgs::Point p;
 	p.x = p.y = 0.0;
-	initialize(p, 10.0, 0.01);
+	initialize(ros::Time(0.0), p, 10.0, 0.01);
 }
 
 Cluster::Cluster(const Cluster& cluster)
@@ -45,12 +45,12 @@ Cluster::Cluster(const Cluster& cluster)
 	// pca は共有できない
 }
 
-Cluster::Cluster(const pcl::PointXYZ &p, const double &sig_p, const double &sig_r)
+Cluster::Cluster(const ros::Time& t, const pcl::PointXYZ &p, const double &sig_p, const double &sig_r)
 	: likelihood_(1.0), lifetime(10), age_(0), totalVisibleCount_(0), consecutiveInvisibleCount_(0),
 	  frame_id("/map")
 	  //, vx(x(0)), vy(x(1))
 {
-	initialize(p, sig_p, sig_r);
+	initialize(t, p, sig_p, sig_r);
 }
 
 void Cluster::measurementUpdate(const pcl::PointXYZ &p)
@@ -77,11 +77,14 @@ void Cluster::measurementUpdate(const pcl::PointXYZ &p)
 	// cout << "updated :\n" << x << endl;
 }
 
-void Cluster::predict()
+void Cluster::predict(const ros::Time& t)
 {
-	current_time = ros::Time::now();
+	// current_time = ros::Time::now();
+	current_time = t;
 	double dt = (current_time - last_time).toSec();
 	last_time = current_time;
+
+	if(0.1 < dt) return;
 
 	Eigen::Matrix4d F = kf.F(dt); // 動作モデルのヤコビアン
 	// Eigen::Matrix<double, 4, 2> G = kf.G(dt); // ノイズ(ax, ay)に関するモデル
@@ -226,7 +229,7 @@ void Cluster::getVelocityArrow(visualization_msgs::MarkerArray &markers, const i
 	visualization_msgs::Marker arrow;
 
 	// marker.header.frame_id = "/map";
-	arrow.header.stamp = ros::Time::now();
+	arrow.header.stamp = current_time;
 	arrow.header.frame_id = frame_id;
 
 	arrow.ns = "/cluster/arrow";
@@ -261,7 +264,7 @@ void Cluster::getVelocityArrow(visualization_msgs::MarkerArray &markers, const i
 void Cluster::getErrorEllipse(visualization_msgs::MarkerArray &markers, const int id)
 {
 	visualization_msgs::Marker ellipse;
-	ellipse.header.stamp = ros::Time::now();
+	ellipse.header.stamp = current_time;
 	ellipse.header.frame_id = frame_id;
 
 	ellipse.ns = "/cluster/ellipse";
@@ -350,10 +353,10 @@ ostream& operator << (ostream &os, const Cluster &cluster)
 
 ///////////////// private //////////////////////
 template<class T_p>
-void Cluster::initialize(const T_p& p, const double &sig_p, const double &sig_r)
+void Cluster::initialize(const ros::Time& t, const T_p& p, const double &sig_p, const double &sig_r)
 {
-	current_time = ros::Time::now();
-	last_time = ros::Time::now();
+	current_time = t;
+	last_time = current_time;
 
 	x << p.x, p.y, 0.0, 0.0;
 

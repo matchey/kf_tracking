@@ -16,18 +16,19 @@
 #include "kf_tracking/tracker.h"
 #include "mmath/common.h"
 
-using namespace std;
+using std::cout;
+using std::endl;
 
 Tracker::Tracker()
 	: sigma_p(0.05), sigma_r(0.1), SDTH(0.6), ELTH(0.5), frame_id("/map"),
-	  isIncrease(false), isStatic(false)
+	  isIncrease(false), isStatic(false), current_time(0.0)
 {
 	pub_track = n.advertise<sensor_msgs::PointCloud2>("/tracking_points", 1);
 	pub_arrow = n.advertise<visualization_msgs::MarkerArray>("/velocity_arrows", 1);
 	pub_ellipse = n.advertise<visualization_msgs::MarkerArray>("/error_ellipses", 1);
 	pub_links = n.advertise<visualization_msgs::MarkerArray>("/link_lines", 1);
 
-	link.header.stamp = ros::Time::now();
+	link.header.stamp = current_time;
 	link.header.frame_id = "/map";
 
 	link.ns = "/cluster/links";
@@ -83,13 +84,15 @@ void Tracker::setThresholdErase(const double &likelihood)
 	ELTH = likelihood;
 }
 
-void Tracker::setFrameID(const string frame_name)
+void Tracker::setFrameID(const std::string frame_name)
 {
 	frame_id = frame_name;
 }
 
 void Tracker::setPosition(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pc_in)
 {
+	pcl_conversions::fromPCL(pc_in->header.stamp, current_time);
+
 	pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>);
 	int lifetime;
 	transform(pc_in, pc);
@@ -98,7 +101,7 @@ void Tracker::setPosition(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pc_in)
 
 	auto it = clusters.begin();
 	while( it != clusters.end()){
-		it->second.predict();
+		it->second.predict(current_time);
 		if(it->second.likelihood() < ELTH ||
 				(it->second.age() < 5 && 5 < it->second.consecutiveInvisibleCount()) ||
 				15 < it->second.consecutiveInvisibleCount()){
@@ -149,7 +152,7 @@ void Tracker::pubTrackingPoints()
 	}
 	// pc->header.frame_id = frame_id;
 	pcl::toROSMsg(*pc, pc2);
-	pc2.header.stamp = ros::Time::now();
+	pc2.header.stamp = current_time;
 
 	pub_track.publish(pc2);
 }
@@ -193,7 +196,7 @@ void Tracker::pubLinkLines()
 	links.markers.clear();
 }
 
-ostream& operator << (ostream &os, const Tracker &tracker)
+std::ostream& operator << (std::ostream &os, const Tracker &tracker)
 {
 	
 	os << "clusters size : " << tracker.clusters.size() << endl;
@@ -248,7 +251,7 @@ int Tracker::getCost(const Cluster& cluster, const pcl::PointXYZ& p)
 	double likelihood;
 
 	vc.measurementUpdate(p);
-	vc.predict();
+	vc.predict(current_time);
 	likelihood = vc.getLikelihood();
 
 	double rate = (likelihood - pre_likelihood) / likelihood;
@@ -295,9 +298,11 @@ void Tracker::hungarianSolve(Eigen::MatrixXi& M)
 {
 	const int Inf = 1e6;
 
+	// cout << "M\n" << M << endl;
+
 	int n = M.rows(), p, q;
-	vector<int> fx(n, Inf), fy(n, 0);
-	vector<int> x(n, -1), y(n, -1);
+	std::vector<int> fx(n, Inf), fy(n, 0);
+	std::vector<int> x(n, -1), y(n, -1);
 
 	for(int i = 0; i < n; ++i){
 		for(int j = 0; j < n; ++j){
@@ -306,7 +311,7 @@ void Tracker::hungarianSolve(Eigen::MatrixXi& M)
 	}
 
 	for(int i = 0; i < n; ){
-		vector<int> t(n, -1), s(n+1, i);
+		std::vector<int> t(n, -1), s(n+1, i);
 		for(p = q = 0; p <= q && x[i] < 0; ++p){
 			for(int k = s[p], j = 0; j < n && x[i] < 0; ++j){
 				if (fx[k] + fy[j] == M(k, j) && t[j] < 0){
@@ -370,7 +375,7 @@ void Tracker::update(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pc)
 		c_id = neighbors[it - pc->points.begin()];
 		auto itr = clusters.find(c_id);
 		if(itr != clusters.end()){
-			link.header.stamp = ros::Time::now();
+			link.header.stamp = current_time;
 			link.id = itr->first;
 			link.color.r = 0.0 + 0.5 * (itr->first % 3);
 			link.color.g = 0.4 + 0.1 * (itr->first % 7);
@@ -380,7 +385,7 @@ void Tracker::update(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pc)
 			link.points.clear();
 			itr->second.measurementUpdate(*it);
 		}else{
-			Cluster cluster(*it, sigma_p, sigma_r);
+			Cluster cluster(current_time, *it, sigma_p, sigma_r);
 			if(isStatic){
 				cluster.setFrameID(frame_id);
 			}
@@ -395,8 +400,8 @@ void Tracker::transform(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pc_in, pcl::P
 
 	if(isStatic || frame_id == "/map" || frame_id == "map") return;
 
-	ros::Time past_time;
-	pcl_conversions::fromPCL(pc_in->header.stamp, past_time);
+	// ros::Time past_time;
+	// pcl_conversions::fromPCL(pc_in->header.stamp, past_time);
 
 	// pcl::PointXYZ p;
 	tf::StampedTransform transform;
@@ -413,7 +418,8 @@ void Tracker::transform(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pc_in, pcl::P
 			ps_in.point.x = it->x;
 			ps_in.point.y = it->y;
 			ps_in.point.z = it->z;
-			listener_.waitForTransform("/map", frame_id, past_time, ros::Duration(0.05));
+			// listener_.waitForTransform("/map", frame_id, past_time, ros::Duration(0.05));
+			listener_.waitForTransform("/map", frame_id, current_time, ros::Duration(0.05));
 			listener_.transformPoint("/map", ps_in, ps_out);
 			it->x = ps_out.point.x;
 			it->y = ps_out.point.y;

@@ -52,15 +52,15 @@ class Cluster
 	PrincipalComponentAnalysis pca;
 
 	template<class T_p>
-	void initialize(const T_p&, const double&, const double&);
+	void initialize(const ros::Time&, const T_p&, const double&, const double&);
 	void setY();
 
 	public:
 	Cluster();
 	Cluster(const Cluster&);
-	Cluster(const pcl::PointXYZ&, const double&, const double&);
+	Cluster(const ros::Time&, const pcl::PointXYZ&, const double&, const double&);
 	void measurementUpdate(const pcl::PointXYZ&);
-	void predict();
+	void predict(const ros::Time&);
 	void setParams();
 	void setFrameID(const std::string&);
 	void setLifetime(const int);

@@ -41,6 +41,7 @@ class Tracker
 	std::vector<int> neighbors;
 	bool isIncrease;
 	bool isStatic;
+	ros::Time current_time;
 
 	int getID(const int&);
 	int getNewID();
