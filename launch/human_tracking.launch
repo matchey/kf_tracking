@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-	<arg name="topic" default="/human_recognition/positive_position" />
+	<!-- <arg name="topic" default="/human_recognition/positive_position" /> -->
+	<arg name="topic" default="/cluster/human/position" />
 	<arg name="increse" default="true" />
 	<arg name="static" default="false" />
 	<!-- <arg name="same" default="0.8" /> -->
