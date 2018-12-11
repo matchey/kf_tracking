@@ -36,7 +36,7 @@ class HumanTracker
 
 		priv_nh.param<bool>("flagIncrese", isIncrese, false);
 		priv_nh.param<bool>("flagStatic", isStatic, false);
-		priv_nh.param<string>("flamID", frame_id, "/velodyne");
+		priv_nh.param<string>("frameID", frame_id, "/velodyne");
 
 		tracker.setStatic(isStatic);
 		if(isIncrese) tracker.setIncrease();
