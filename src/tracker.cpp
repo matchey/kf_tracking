@@ -357,7 +357,7 @@ void Tracker::associate(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pos)
 			}else if(i < c_size && !(j < p_size)){
 				M(i, j) = getCost(clusters[getID(i)]);
 			}else if(!(i < c_size) && j < p_size){
-				M(i, j) = getCost(pos->points[i]);
+				M(i, j) = getCost(pos->points[j]);
 			}else{ // !(i < c_size) && !(j < p_size)
 				M(i, j) = getCost();
 			}
