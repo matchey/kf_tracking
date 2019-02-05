@@ -258,7 +258,18 @@ int Tracker::getCost(const Cluster& cluster, const pcl::PointXYZ& p)
 	double dist = cluster.getDist(p);
 
 	// cout << "rate : " << rate << endl;
-	return int(100.0*dist + 10.0*dist*rate);
+	double rtn;
+
+	if(cluster.age() < 30){
+		double t = 50.0;
+		rtn = t * dist + (100.0 - t) * SDTH + 10.0 * dist * rate;
+	}else{
+		rtn = 100.0 * dist + 10.0 * dist * rate;
+	}
+
+	return int(rtn);
+
+	// return int((100.0 * dist) + (10.0 * dist * rate) + (100.0 * dist / cluster.age()));
 	// return int(100.0*dist);
 }
 
